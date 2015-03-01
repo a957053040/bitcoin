@@ -20,8 +20,6 @@ EXTRA_DIST += \
 JSON_TEST_FILES = \
   test/data/script_valid.json \
   test/data/base58_keys_valid.json \
-  test/data/sig_canonical.json \
-  test/data/sig_noncanonical.json \
   test/data/base58_encode_decode.json \
   test/data/base58_keys_invalid.json \
   test/data/script_invalid.json \
@@ -58,6 +56,7 @@ BITCOIN_TESTS =\
   test/netbase_tests.cpp \
   test/pmt_tests.cpp \
   test/rpc_tests.cpp \
+  test/sanity_tests.cpp \
   test/script_P2SH_tests.cpp \
   test/script_tests.cpp \
   test/scriptnum_tests.cpp \

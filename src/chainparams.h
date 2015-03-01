@@ -68,7 +68,7 @@ public:
     bool RequireStandard() const { return fRequireStandard; }
     int64_t TargetTimespan() const { return nTargetTimespan; }
     int64_t TargetSpacing() const { return nTargetSpacing; }
-    int64_t Interval() const { return nTargetTimespan / nTargetSpacing; }
+    int64_t DifficultyAdjustmentInterval() const { return nTargetTimespan / nTargetSpacing; }
     /** Make miner stop after a block is found. In RPC, don't return until nGenProcLimit blocks are generated */
     bool MineBlocksOnDemand() const { return fMineBlocksOnDemand; }
     /** In the future use NetworkIDString() for RPC fields */
@@ -97,7 +97,6 @@ protected:
     int nMinerThreads;
     std::vector<CDNSSeedData> vSeeds;
     std::vector<unsigned char> base58Prefixes[MAX_BASE58_TYPES];
-    CBaseChainParams::Network networkID;
     std::string strNetworkID;
     CBlock genesis;
     std::vector<CAddress> vFixedSeeds;

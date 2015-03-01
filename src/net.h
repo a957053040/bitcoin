@@ -61,7 +61,6 @@ unsigned int ReceiveFloodSize();
 unsigned int SendBufferSize();
 
 void AddOneShot(std::string strDest);
-bool RecvLine(SOCKET hSocket, std::string& strLine);
 void AddressCurrentlyConnected(const CService& addr);
 CNode* FindNode(const CNetAddr& ip);
 CNode* FindNode(const std::string& addrName);
@@ -571,9 +570,6 @@ public:
         }
     }
 
-    bool IsSubscribed(unsigned int nChannel);
-    void Subscribe(unsigned int nChannel, unsigned int nHops=0);
-    void CancelSubscribe(unsigned int nChannel);
     void CloseSocketDisconnect();
 
     // Denial-of-service detection/prevention

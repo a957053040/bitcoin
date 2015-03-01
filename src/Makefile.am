@@ -37,7 +37,7 @@ $(LIBSECP256K1): $(wildcard secp256k1/src/*) $(wildcard secp256k1/include/*)
 
 # Make is not made aware of per-object dependencies to avoid limiting building parallelization
 # But to build the less dependent modules first, we manually select their order here:
-noinst_LIBRARIES = \
+EXTRA_LIBRARIES = \
   crypto/libbitcoin_crypto.a \
   libbitcoin_util.a \
   libbitcoin_common.a \
@@ -46,7 +46,7 @@ noinst_LIBRARIES = \
   libbitcoin_cli.a
 if ENABLE_WALLET
 BITCOIN_INCLUDES += $(BDB_CPPFLAGS)
-noinst_LIBRARIES += libbitcoin_wallet.a
+EXTRA_LIBRARIES += libbitcoin_wallet.a
 endif
 
 if BUILD_BITCOIN_LIBS
@@ -123,6 +123,7 @@ BITCOIN_CORE_H = \
   script/standard.h \
   serialize.h \
   streams.h \
+  support/cleanse.h \
   sync.h \
   threadsafety.h \
   timedata.h \
@@ -209,14 +210,12 @@ crypto_libbitcoin_crypto_a_SOURCES = \
   crypto/sha256.cpp \
   crypto/sha512.cpp \
   crypto/hmac_sha256.cpp \
-  crypto/rfc6979_hmac_sha256.cpp \
   crypto/hmac_sha512.cpp \
   crypto/ripemd160.cpp \
   crypto/common.h \
   crypto/sha256.h \
   crypto/sha512.h \
   crypto/hmac_sha256.h \
-  crypto/rfc6979_hmac_sha256.h \
   crypto/hmac_sha512.h \
   crypto/sha1.h \
   crypto/ripemd160.h
@@ -233,6 +232,7 @@ univalue_libbitcoin_univalue_a_SOURCES = \
 libbitcoin_common_a_CPPFLAGS = $(BITCOIN_INCLUDES)
 libbitcoin_common_a_SOURCES = \
   allocators.cpp \
+  arith_uint256.cpp \
   amount.cpp \
   base58.cpp \
   chainparams.cpp \
@@ -262,7 +262,6 @@ libbitcoin_common_a_SOURCES = \
 # backward-compatibility objects and their sanity checks are linked.
 libbitcoin_util_a_CPPFLAGS = $(BITCOIN_INCLUDES)
 libbitcoin_util_a_SOURCES = \
-  arith_uint256.cpp \
   chainparamsbase.cpp \
   clientversion.cpp \
   compat/glibc_sanity.cpp \
@@ -270,6 +269,7 @@ libbitcoin_util_a_SOURCES = \
   compat/strnlen.cpp \
   random.cpp \
   rpcprotocol.cpp \
+  support/cleanse.cpp \
   sync.cpp \
   uint256.cpp \
   util.cpp \
@@ -293,6 +293,14 @@ nodist_libbitcoin_util_a_SOURCES = $(srcdir)/obj/build.h
 #
 
 # bitcoind binary #
+bitcoind_SOURCES = bitcoind.cpp
+bitcoind_CPPFLAGS = $(BITCOIN_INCLUDES)
+bitcoind_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+
+if TARGET_WINDOWS
+bitcoind_SOURCES += bitcoind-res.rc
+endif
+
 bitcoind_LDADD = \
   $(LIBBITCOIN_SERVER) \
   $(LIBBITCOIN_COMMON) \
@@ -306,55 +314,46 @@ bitcoind_LDADD = \
 if ENABLE_WALLET
 bitcoind_LDADD += libbitcoin_wallet.a
 endif
-bitcoind_SOURCES = bitcoind.cpp
-#
-
-if TARGET_WINDOWS
-bitcoind_SOURCES += bitcoind-res.rc
-endif
 
 bitcoind_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS)
-bitcoind_CPPFLAGS = $(BITCOIN_INCLUDES)
-bitcoind_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+#
 
 # bitcoin-cli binary #
+bitcoin_cli_SOURCES = bitcoin-cli.cpp
+bitcoin_cli_CPPFLAGS = $(BITCOIN_INCLUDES)
+bitcoin_cli_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+
+if TARGET_WINDOWS
+bitcoin_cli_SOURCES += bitcoin-cli-res.rc
+endif
+
 bitcoin_cli_LDADD = \
   $(LIBBITCOIN_CLI) \
   $(LIBBITCOIN_UTIL) \
-  $(BOOST_LIBS) \
-  $(SSL_LIBS) \
-  $(CRYPTO_LIBS)
+  $(LIBSECP256K1)
 
-bitcoin_cli_SOURCES = \
-  bitcoin-cli.cpp
-
-bitcoin_cli_CPPFLAGS = $(BITCOIN_INCLUDES)
+bitcoin_cli_LDADD += $(BOOST_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS)
 #
 
 # bitcoin-tx binary #
+bitcoin_tx_SOURCES = bitcoin-tx.cpp
+bitcoin_tx_CPPFLAGS = $(BITCOIN_INCLUDES)
+bitcoin_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+
 bitcoin_tx_LDADD = \
   $(LIBBITCOIN_UNIVALUE) \
   $(LIBBITCOIN_COMMON) \
   $(LIBBITCOIN_UTIL) \
   $(LIBBITCOIN_CRYPTO) \
-  $(LIBSECP256K1) \
-  $(BOOST_LIBS) \
-  $(CRYPTO_LIBS)
+  $(LIBSECP256K1)
 
-bitcoin_tx_SOURCES = bitcoin-tx.cpp
-bitcoin_tx_CPPFLAGS = $(BITCOIN_INCLUDES)
+bitcoin_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS)
 #
-bitcoin_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
 
-if TARGET_WINDOWS
-bitcoin_cli_SOURCES += bitcoin-cli-res.rc
-endif
-bitcoin_cli_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
-
+# bitcoinconsensus library #
 if BUILD_BITCOIN_LIBS
 include_HEADERS = script/bitcoinconsensus.h
 libbitcoinconsensus_la_SOURCES = \
-  arith_uint256.cpp \
   crypto/hmac_sha512.cpp \
   crypto/ripemd160.cpp \
   crypto/sha1.cpp \
@@ -379,10 +378,12 @@ endif
 libbitcoinconsensus_la_LDFLAGS = -no-undefined $(RELDFLAGS)
 libbitcoinconsensus_la_LIBADD = $(CRYPTO_LIBS)
 libbitcoinconsensus_la_CPPFLAGS = $(CRYPTO_CFLAGS) -I$(builddir)/obj -DBUILD_BITCOIN_INTERNAL
+
 if USE_LIBSECP256K1
 libbitcoinconsensus_la_LIBADD += secp256k1/libsecp256k1.la
 endif
 endif
+#
 
 CLEANFILES = leveldb/libleveldb.a leveldb/libmemenv.a *.gcda *.gcno
 
