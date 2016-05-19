@@ -9,12 +9,18 @@ $(package)_clang_download_path=http://llvm.org/releases/$($(package)_clang_versi
 $(package)_clang_download_file=clang+llvm-$($(package)_clang_version)-amd64-Ubuntu-12.04.2.tar.gz
 $(package)_clang_file_name=clang-llvm-$($(package)_clang_version)-amd64-Ubuntu-12.04.2.tar.gz
 $(package)_clang_sha256_hash=60d8f69f032d62ef61bf527857ebb933741ec3352d4d328c5516aa520662dab7
+$(package)_extra_sources=$($(package)_clang_file_name)
+
 define $(package)_fetch_cmds
 $(call fetch_file,$(package),$($(package)_download_path),$($(package)_download_file),$($(package)_file_name),$($(package)_sha256_hash)) && \
 $(call fetch_file,$(package),$($(package)_clang_download_path),$($(package)_clang_download_file),$($(package)_clang_file_name),$($(package)_clang_sha256_hash))
 endef
 
 define $(package)_extract_cmds
+  mkdir -p $($(package)_extract_dir) && \
+  echo "$($(package)_sha256_hash)  $($(package)_source)" > $($(package)_extract_dir)/.$($(package)_file_name).hash && \
+  echo "$($(package)_clang_sha256_hash)  $($(package)_source_dir)/$($(package)_clang_file_name)" >> $($(package)_extract_dir)/.$($(package)_file_name).hash && \
+  $(build_SHA256SUM) -c $($(package)_extract_dir)/.$($(package)_file_name).hash && \
   mkdir -p toolchain/bin toolchain/lib/clang/3.5/include && \
   tar --strip-components=1 -C toolchain -xf $($(package)_source_dir)/$($(package)_clang_file_name) && \
   echo "#!/bin/sh" > toolchain/bin/$(host)-dsymutil && \

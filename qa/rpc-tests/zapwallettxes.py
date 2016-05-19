@@ -1,10 +1,10 @@
-#!/usr/bin/env python2
-# Copyright (c) 2014 The Bitcoin Core developers
+#!/usr/bin/env python3
+# Copyright (c) 2014-2016 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-from test_framework import BitcoinTestFramework
-from util import *
+from test_framework.test_framework import BitcoinTestFramework
+from test_framework.util import *
 
 
 class ZapWalletTXesTest (BitcoinTestFramework):
@@ -22,10 +22,10 @@ class ZapWalletTXesTest (BitcoinTestFramework):
         self.sync_all()
 
     def run_test (self):
-        print "Mining blocks..."
-        self.nodes[0].setgenerate(True, 1)
+        print("Mining blocks...")
+        self.nodes[0].generate(1)
         self.sync_all()
-        self.nodes[1].setgenerate(True, 101)
+        self.nodes[1].generate(101)
         self.sync_all()
         
         assert_equal(self.nodes[0].getbalance(), 50)
@@ -33,7 +33,7 @@ class ZapWalletTXesTest (BitcoinTestFramework):
         txid0 = self.nodes[0].sendtoaddress(self.nodes[2].getnewaddress(), 11)
         txid1 = self.nodes[0].sendtoaddress(self.nodes[2].getnewaddress(), 10)
         self.sync_all()
-        self.nodes[0].setgenerate(True, 1)
+        self.nodes[0].generate(1)
         self.sync_all()
         
         txid2 = self.nodes[0].sendtoaddress(self.nodes[2].getnewaddress(), 11)
@@ -65,14 +65,8 @@ class ZapWalletTXesTest (BitcoinTestFramework):
         #restart bitcoind with zapwallettxes
         self.nodes[0] = start_node(0,self.options.tmpdir, ["-zapwallettxes=1"])
         
-        aException = False
-        try:
-            tx3 = self.nodes[0].gettransaction(txid3)
-        except JSONRPCException,e:
-            print e
-            aException = True
-        
-        assert_equal(aException, True) #there must be a expection because the unconfirmed wallettx0 must be gone by now
+        assert_raises(JSONRPCException, self.nodes[0].gettransaction, [txid3])
+        #there must be a expection because the unconfirmed wallettx0 must be gone by now
 
         tx0 = self.nodes[0].gettransaction(txid0)
         assert_equal(tx0['txid'], txid0) #tx0 (confirmed) must still be available because it was confirmed
